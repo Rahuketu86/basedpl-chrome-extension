@@ -1,0 +1,37 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body { font: 13px -apple-system, system-ui, sans-serif; width: 260px; margin: 0; padding: 12px; }
+  h1 { font-size: 13px; margin: 0 0 8px; }
+  .host { color: #555; word-break: break-all; margin-bottom: 10px; }
+  label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+  .sub { margin-top: 8px; padding-left: 20px; }
+  .sub[data-disabled] { opacity: 0.45; pointer-events: none; }
+  .hint { color: #888; font-size: 11px; margin-top: 10px; }
+</style>
+</head>
+<body>
+  <h1>BasedPL Input</h1>
+  <div class="host" id="host">—</div>
+  <label>
+    <input type="checkbox" id="toggle">
+    Enable on this site
+  </label>
+  <div class="sub" id="autocompleteRow">
+    <label>
+      <input type="checkbox" id="autocompleteToggle">
+      Symbol name autocomplete (` + Tab)
+    </label>
+  </div>
+  <div class="sub" id="barRow">
+    <label>
+      <input type="checkbox" id="barToggle">
+      Show symbol bar
+    </label>
+  </div>
+  <div class="hint">Hold left ⌥ Option and press a chord key (e.g. ⌥S → ⌈) in any text field on this site. Type `name and press Tab to autocomplete a symbol by name.</div>
+</body>
+<script src="popup.js"></script>
+</html>
