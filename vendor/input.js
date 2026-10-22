@@ -1,8 +1,10 @@
-// Vendored verbatim from AnswerDotAI/basedpl's python/basedpl/input.js, except for this
-// one wrapper line: the upstream file is a bare expression, meant to be concatenated into
-// a larger eval'd script by python/basedpl/notebooks.py. Loaded as a plain content-script
-// file it would otherwise evaluate and discard itself, so we capture the factory here.
+// Vendored from AnswerDotAI/basedpl's python/basedpl/input.js (basedpl 0.1.64), except for
+// this one wrapper: the upstream file is a bare expression, meant to be concatenated into a
+// larger eval'd script by python/basedpl/notebooks.py. Loaded as a plain content-script file it
+// would otherwise evaluate and discard itself, so we capture the factory here.
+// Regenerate with tools/update_vendor.py -- do not edit by hand.
 self.__basedplInputFactory = ((symbols, layout) => {
+    const comments = new Set(symbols.filter(s => s.kind === 'comment').flatMap(s => [...s.glyph, ...s.hanzi.join('')]));
     // US physical keys, before macOS Option or another layout transforms event.key.
     const punctuation = {Backquote: '`~', Minus: '-_', Equal: '=+', BracketLeft: '[{', BracketRight: ']}',
         Backslash: '\\|', Semicolon: ';:', Quote: "'\"", Comma: ',<', Period: '.>', Slash: '/?'};
@@ -22,7 +24,7 @@ self.__basedplInputFactory = ((symbols, layout) => {
         const key = usKey(ev), plain = !ev.altKey && !ev.ctrlKey && !ev.metaKey;
         // Native Option can hide the alias character; accept its US physical chord too.
         const action = option && ev.altKey && !ev.ctrlKey && !ev.metaKey
-            ? layout.alt_aliases[ev.key] ?? layout.option[key] ?? (Object.values(layout.alt_aliases).includes(key) ? key : null) : null;
+            ? layout.alt_aliases[ev.key] ?? (Object.values(layout.alt_aliases).includes(key) ? key : layout.option[key]) : null;
         if (pending) {
             const state = layout.states[pending], repeated = action?.state === pending;
             pending = null;
@@ -38,14 +40,15 @@ self.__basedplInputFactory = ((symbols, layout) => {
     }
     const reset = () => { pending = null; };
 
-    // At each level (exact, prefix, prefixes of hyphen-separated parts) a name outranks a search word, as in `matches` in `symbols.rs`.
+    // Every name ranks alike at each level: exact, prefix, then prefixes of hyphen-separated parts. Each match carries the name it
+    // matched by, the glyph name where several of a glyph's names match equally, as in `matches` in `symbols.rs`.
     function matches(query) {
         query = query.toLowerCase();
         const letters = word => word.replaceAll('-', '');
         let best = Infinity, found = [];
-        for (const {glyph, name, monad, dyad, aliases} of symbols) {
-            let rank = Infinity;
-            [name, monad, dyad, ...aliases.split(' ')].filter(Boolean).forEach((word, i) => {
+        for (const {glyph, name, monad, dyad} of symbols) {
+            let rank = Infinity, matched;
+            [name, monad, dyad].filter(Boolean).forEach(word => {
                 const level = letters(word) === query ? 0 : letters(word).startsWith(query) ? 1 : 2;
                 if (level === 2) {
                     let rest = query;
@@ -58,10 +61,10 @@ self.__basedplInputFactory = ((symbols, layout) => {
                     }
                     if (rest) return;
                 }
-                rank = Math.min(rank, 2 * level + (i > 0));
+                if (level < rank) { rank = level; matched = word; }
             });
             if (rank < best) { best = rank; found = []; }
-            if (rank < Infinity && rank === best) found.push([glyph, name]);
+            if (rank < Infinity && rank === best) found.push([glyph, matched]);
         }
         // A name that is a prefix of every other match wins: `om gives omega, `omu gives omega-underbar.
         const shortest = found.find(([, a]) => found.every(([, b]) => letters(b).startsWith(letters(a))));
@@ -85,7 +88,7 @@ self.__basedplInputFactory = ((symbols, layout) => {
             } else if (c === "'" || c === '"') {
                 quote = python && text.startsWith(c.repeat(3), i) ? c.repeat(3) : c;
                 i += quote.length - 1;
-            } else if (c === (python ? '#' : '⍝')) comment = true;
+            } else if (python ? c === '#' : comments.has(c)) comment = true;
         }
         return !quote && !comment;
     }
